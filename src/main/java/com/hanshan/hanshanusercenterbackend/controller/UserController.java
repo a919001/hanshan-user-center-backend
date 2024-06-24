@@ -7,6 +7,7 @@ import com.hanshan.hanshanusercenterbackend.common.ErrorCode;
 import com.hanshan.hanshanusercenterbackend.common.ResultUtils;
 import com.hanshan.hanshanusercenterbackend.constant.UserConstant;
 import com.hanshan.hanshanusercenterbackend.model.domain.User;
+import com.hanshan.hanshanusercenterbackend.model.request.UserDeleteRequest;
 import com.hanshan.hanshanusercenterbackend.model.request.UserPasswordLoginRequest;
 import com.hanshan.hanshanusercenterbackend.model.request.UserRegisterRequest;
 import com.hanshan.hanshanusercenterbackend.service.UserService;
@@ -78,7 +79,8 @@ public class UserController {
     }
 
     @PostMapping("/delete")
-    public BaseResponse<Boolean> deleteUser(@RequestBody Long id, HttpServletRequest request) {
+    public BaseResponse<Boolean> deleteUser(@RequestBody UserDeleteRequest userDeleteRequest, HttpServletRequest request) {
+        Long id = userDeleteRequest.getId();
         if (isAdmin(request)) {
             if (id < 0) {
                 return ResultUtils.error(ErrorCode.PARAMS_ERROR);
