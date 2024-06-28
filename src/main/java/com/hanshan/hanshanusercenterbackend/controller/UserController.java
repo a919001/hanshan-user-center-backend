@@ -2,6 +2,7 @@ package com.hanshan.hanshanusercenterbackend.controller;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.hanshan.hanshanusercenterbackend.common.BaseResponse;
 import com.hanshan.hanshanusercenterbackend.common.ErrorCode;
 import com.hanshan.hanshanusercenterbackend.common.ResultUtils;
@@ -12,11 +13,15 @@ import com.hanshan.hanshanusercenterbackend.model.request.UserPasswordLoginReque
 import com.hanshan.hanshanusercenterbackend.model.request.UserRegisterRequest;
 import com.hanshan.hanshanusercenterbackend.service.UserService;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.hanshan.hanshanusercenterbackend.constant.UserConstant.USER_LOGIN_STATE;
+import static com.hanshan.hanshanusercenterbackend.utils.OssAdd.upload;
 
 @CrossOrigin
 @RestController
@@ -50,7 +55,7 @@ public class UserController {
 
     @GetMapping("/current")
     public BaseResponse<User> getCurrentUser(HttpServletRequest request) {
-        User currentUser = (User) request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        User currentUser = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
         if (currentUser == null) {
             return ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR, "请先登录");
         }
@@ -97,7 +102,19 @@ public class UserController {
      * @return 是否为管理员
      */
     private boolean isAdmin(HttpServletRequest request) {
-        User user = (User) request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        User user = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
         return user != null && user.getUserRole() == UserConstant.ADMIN_ROLE;
+    }
+
+    @PostMapping("/upload")
+    public BaseResponse<String> uploadAvatar(@RequestParam("avatar") MultipartFile file, HttpServletRequest request) {
+        String avatarUrl = upload(file);
+        User user = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
+        UpdateWrapper<User> userUpdateWrapper = new UpdateWrapper<>();
+        userUpdateWrapper.eq("id", user.getId()).set("avatar", avatarUrl);
+        if (!userService.update(userUpdateWrapper)) {
+            return ResultUtils.error(ErrorCode.OPERATION_ERROR, "更新头像失败");
+        }
+        return ResultUtils.success(avatarUrl);
     }
 }
