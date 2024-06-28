@@ -1,9 +1,11 @@
 package com.hanshan.hanshanusercenterbackend.service.impl;
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.DesensitizedUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.SecureUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hanshan.hanshanusercenterbackend.common.BaseResponse;
 import com.hanshan.hanshanusercenterbackend.common.ErrorCode;
@@ -13,6 +15,7 @@ import com.hanshan.hanshanusercenterbackend.mapper.UserMapper;
 import com.hanshan.hanshanusercenterbackend.model.domain.User;
 import com.hanshan.hanshanusercenterbackend.model.request.UserPasswordLoginRequest;
 import com.hanshan.hanshanusercenterbackend.model.request.UserRegisterRequest;
+import com.hanshan.hanshanusercenterbackend.model.request.UserUpdateInfoRequest;
 import com.hanshan.hanshanusercenterbackend.service.UserService;
 import org.springframework.stereotype.Service;
 
@@ -183,6 +186,28 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
         request.getSession().removeAttribute(USER_LOGIN_STATE);
         return ResultUtils.success("退出成功");
+    }
+
+    @Override
+    public BaseResponse<User> updatePersonalInfo(UserUpdateInfoRequest userUpdateInfoRequest, HttpServletRequest request) {
+
+        // 1. 获取用户登录态
+        User currentUser = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
+        // 2. 设置更新信息
+        UpdateWrapper<User> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("id", currentUser.getId());
+        User updateUser = new User();
+        BeanUtil.copyProperties(userUpdateInfoRequest, updateUser);
+        // 3. 执行更新操作
+        int rows = userMapper.update(updateUser, updateWrapper);
+        if (rows <= 0) {
+            return ResultUtils.error(ErrorCode.OPERATION_ERROR, "更新数据时错误");
+        }
+        // 4. 查询更新后的用户信息
+        User user = userMapper.selectById(currentUser.getId());
+        // 6. 返回更新后的脱敏用户信息
+        User safetyUser = getSafetyUser(user);
+        return ResultUtils.success(safetyUser);
     }
 }
 

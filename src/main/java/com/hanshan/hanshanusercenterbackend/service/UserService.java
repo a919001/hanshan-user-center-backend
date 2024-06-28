@@ -5,6 +5,7 @@ import com.hanshan.hanshanusercenterbackend.common.BaseResponse;
 import com.hanshan.hanshanusercenterbackend.model.domain.User;
 import com.hanshan.hanshanusercenterbackend.model.request.UserPasswordLoginRequest;
 import com.hanshan.hanshanusercenterbackend.model.request.UserRegisterRequest;
+import com.hanshan.hanshanusercenterbackend.model.request.UserUpdateInfoRequest;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -49,4 +50,12 @@ public interface UserService extends IService<User> {
      * @return 操作结果
      */
     BaseResponse<String> userLogout(HttpServletRequest request);
+
+    /**
+     * 更新个人信息
+     * @param userUpdateInfoRequest 更新信息请求体
+     * @param request 获取登录态
+     * @return 更新后的用户脱敏信息
+     */
+    BaseResponse<User> updatePersonalInfo(UserUpdateInfoRequest userUpdateInfoRequest, HttpServletRequest request);
 }

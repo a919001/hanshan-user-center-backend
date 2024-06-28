@@ -11,6 +11,7 @@ import com.hanshan.hanshanusercenterbackend.model.domain.User;
 import com.hanshan.hanshanusercenterbackend.model.request.UserDeleteRequest;
 import com.hanshan.hanshanusercenterbackend.model.request.UserPasswordLoginRequest;
 import com.hanshan.hanshanusercenterbackend.model.request.UserRegisterRequest;
+import com.hanshan.hanshanusercenterbackend.model.request.UserUpdateInfoRequest;
 import com.hanshan.hanshanusercenterbackend.service.UserService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -116,5 +117,11 @@ public class UserController {
             return ResultUtils.error(ErrorCode.OPERATION_ERROR, "更新头像失败");
         }
         return ResultUtils.success(avatarUrl);
+    }
+
+    @PostMapping("/update-personal-info")
+    public BaseResponse<User> updatePersonalInfo(@RequestBody UserUpdateInfoRequest userUpdateInfoRequest,
+                                                 HttpServletRequest request) {
+        return userService.updatePersonalInfo(userUpdateInfoRequest, request);
     }
 }
