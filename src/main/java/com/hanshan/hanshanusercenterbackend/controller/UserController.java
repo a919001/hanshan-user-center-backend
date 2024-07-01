@@ -8,10 +8,7 @@ import com.hanshan.hanshanusercenterbackend.common.ErrorCode;
 import com.hanshan.hanshanusercenterbackend.common.ResultUtils;
 import com.hanshan.hanshanusercenterbackend.constant.UserConstant;
 import com.hanshan.hanshanusercenterbackend.model.domain.User;
-import com.hanshan.hanshanusercenterbackend.model.request.UserDeleteRequest;
-import com.hanshan.hanshanusercenterbackend.model.request.UserPasswordLoginRequest;
-import com.hanshan.hanshanusercenterbackend.model.request.UserRegisterRequest;
-import com.hanshan.hanshanusercenterbackend.model.request.UserUpdateInfoRequest;
+import com.hanshan.hanshanusercenterbackend.model.request.*;
 import com.hanshan.hanshanusercenterbackend.service.UserService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -39,14 +36,21 @@ public class UserController {
     }
 
     @GetMapping("/verify-code")
-    public void getVerifyCode(HttpServletRequest request) {
-        userService.getVerifyCode(request);
+    public BaseResponse<String> getVerifyCode(@RequestParam(value = "phone") String phone, HttpServletRequest request) throws Exception {
+        userService.getVerifyCode(phone, request);
+        return ResultUtils.success("验证码获取成功");
     }
 
     @PostMapping("/passwordLogin")
     public BaseResponse<User> userPasswordLogin(@RequestBody UserPasswordLoginRequest userPasswordLoginRequest,
                                                 HttpServletRequest request) {
         return userService.userPasswordLogin(userPasswordLoginRequest, request);
+    }
+
+    @PostMapping("/phoneLogin")
+    public BaseResponse<User> userPhoneLogin(@RequestBody UserPhoneLoginRequest userPhoneLoginRequest,
+                                             HttpServletRequest request) {
+        return userService.userPhoneLogin(userPhoneLoginRequest, request);
     }
 
     @PostMapping("/logout")
@@ -106,6 +110,7 @@ public class UserController {
         User user = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
         return user != null && user.getUserRole() == UserConstant.ADMIN_ROLE;
     }
+
 
     @PostMapping("/upload")
     public BaseResponse<String> uploadAvatar(@RequestParam("avatar") MultipartFile file, HttpServletRequest request) {

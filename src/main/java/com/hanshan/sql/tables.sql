@@ -11,7 +11,7 @@ create table user
     birthday    date comment '生日',
     region      varchar(255) comment '地区',
     signature   varchar(511) default '这个人很懒，什么都没有留下。' comment '个性签名',
-    phone       varchar(64) comment '手机',
+    phone       varchar(64) unique comment '手机',
     email       varchar(64) comment '邮箱',
     user_status int          default 0 comment '用户状态( 0 - 正常)',
     user_role   int          default 0 comment '用户角色（ 0 - 普通用户，1 - 管理员）',

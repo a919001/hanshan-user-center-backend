@@ -1,4 +1,5 @@
 package com.hanshan.hanshanusercenterbackend.service.impl;
+
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.DesensitizedUtil;
 import cn.hutool.core.util.RandomUtil;
@@ -10,10 +11,12 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hanshan.hanshanusercenterbackend.common.BaseResponse;
 import com.hanshan.hanshanusercenterbackend.common.ErrorCode;
 import com.hanshan.hanshanusercenterbackend.common.ResultUtils;
+import com.hanshan.hanshanusercenterbackend.common.VerifyCodeHolder;
 import com.hanshan.hanshanusercenterbackend.constant.UserConstant;
 import com.hanshan.hanshanusercenterbackend.mapper.UserMapper;
 import com.hanshan.hanshanusercenterbackend.model.domain.User;
 import com.hanshan.hanshanusercenterbackend.model.request.UserPasswordLoginRequest;
+import com.hanshan.hanshanusercenterbackend.model.request.UserPhoneLoginRequest;
 import com.hanshan.hanshanusercenterbackend.model.request.UserRegisterRequest;
 import com.hanshan.hanshanusercenterbackend.model.request.UserUpdateInfoRequest;
 import com.hanshan.hanshanusercenterbackend.service.UserService;
@@ -22,8 +25,10 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 
-import static com.hanshan.hanshanusercenterbackend.constant.UserConstant.USER_LOGIN_STATE;
+import static com.hanshan.hanshanusercenterbackend.constant.UserConstant.*;
+import static com.hanshan.hanshanusercenterbackend.utils.SendSms.sendSms;
 
 /**
  * @author 寒山
@@ -82,8 +87,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         String encryptPassword = SecureUtil.md5(password);
         // 手机号加密
         String encryptPhone = SecureUtil.aes(UserConstant.AES_KEY.getBytes(StandardCharsets.UTF_8)).encryptBase64(phone, "UTF-8");
+        // 取出校验码
+        VerifyCodeHolder storedVerifyCodeHolder = (VerifyCodeHolder) request.getSession().getAttribute(VERIFY_CODE);
+        // 是否过期
+        if (verifyCodeWhetherExpired(storedVerifyCodeHolder)) {
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "验证码已过期");
+        }
+        String checkCode = storedVerifyCodeHolder.getCode();
         // 校验验证码
-        String checkCode = (String) request.getSession().getAttribute("verifyCode");
         if (!verifyCode.equals(checkCode)) {
             return ResultUtils.error(ErrorCode.PARAMS_ERROR, "验证码错误，请重试");
         }
@@ -105,12 +116,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     @Override
-    public void getVerifyCode(HttpServletRequest request) {
+    public void getVerifyCode(String phone, HttpServletRequest request) throws Exception {
         String verifyCode = RandomUtil.randomNumbers(6);
         System.out.println("verifyCode = " + verifyCode);
-        request.getSession().setAttribute("verifyCode", verifyCode);
-        String code = (String) request.getSession().getAttribute("verifyCode");
-        System.out.println("code = " + code);
+        sendSms(phone, verifyCode);
+        VerifyCodeHolder verifyCodeHolder = new VerifyCodeHolder(verifyCode);
+        request.getSession().setAttribute(VERIFY_CODE, verifyCodeHolder);
     }
 
     @Override
@@ -208,6 +219,50 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 6. 返回更新后的脱敏用户信息
         User safetyUser = getSafetyUser(user);
         return ResultUtils.success(safetyUser);
+    }
+
+    @Override
+    public BaseResponse<User> userPhoneLogin(UserPhoneLoginRequest userPhoneLoginRequest, HttpServletRequest request) {
+        String phone = userPhoneLoginRequest.getPhone();
+        String code = userPhoneLoginRequest.getVerifyCode();
+        // 对属性判空
+        if (StrUtil.hasBlank(phone, code)) {
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "参数不能为空");
+        }
+        // 根据加密后的手机号进行用户查询
+        String encryptPhone = SecureUtil.aes(UserConstant.AES_KEY.getBytes(StandardCharsets.UTF_8))
+                .encryptBase64(phone, "UTF-8");
+        QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+        userQueryWrapper.eq("phone", encryptPhone);
+        User user = userMapper.selectOne(userQueryWrapper);
+        if (user == null) {
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "该用户不存在");
+        }
+        VerifyCodeHolder storedVerifyCodeHolder = (VerifyCodeHolder) request.getSession().getAttribute("verifyCode");
+        if (verifyCodeWhetherExpired(storedVerifyCodeHolder)) {
+            // 销毁验证码
+            request.getSession().removeAttribute(VERIFY_CODE);
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "验证码已过期");
+        }
+        String verifyCode = storedVerifyCodeHolder.getCode();
+        if (!code.equals(verifyCode)) {
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "验证码错误");
+        }
+        User safetyUser = getSafetyUser(user);
+        // 记录用户登录态
+        request.getSession().setAttribute(USER_LOGIN_STATE, safetyUser);
+        return ResultUtils.success(safetyUser);
+    }
+
+    /**
+     * 判断验证码是否过期
+     * @return true 已过期，false 未过期
+     */
+    private boolean verifyCodeWhetherExpired(VerifyCodeHolder storedVerifyCodeHolder) {
+        if (storedVerifyCodeHolder == null) {
+            return true;
+        }
+        return new Date().getTime() - storedVerifyCodeHolder.getGenerationTime().getTime() >= VERIFY_CODE_EXPIRED_TIME;
     }
 }
 

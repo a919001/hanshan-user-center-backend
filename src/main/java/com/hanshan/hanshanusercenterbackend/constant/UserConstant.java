@@ -24,4 +24,14 @@ public interface UserConstant {
      * 管理员权限
      */
     int ADMIN_ROLE = 1;
+
+    /**
+     * 验证码过期时间
+     */
+    long VERIFY_CODE_EXPIRED_TIME = 5 * 60 * 1000L;
+
+    /**
+     * 验证码
+     */
+    String VERIFY_CODE = "verifyCode";
 }

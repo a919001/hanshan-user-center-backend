@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.hanshan.hanshanusercenterbackend.common.BaseResponse;
 import com.hanshan.hanshanusercenterbackend.model.domain.User;
 import com.hanshan.hanshanusercenterbackend.model.request.UserPasswordLoginRequest;
+import com.hanshan.hanshanusercenterbackend.model.request.UserPhoneLoginRequest;
 import com.hanshan.hanshanusercenterbackend.model.request.UserRegisterRequest;
 import com.hanshan.hanshanusercenterbackend.model.request.UserUpdateInfoRequest;
 
@@ -27,7 +28,7 @@ public interface UserService extends IService<User> {
      * 获取验证码 todo 之后使用云服务优化
      * @param request 暂时用session实现
      */
-    void getVerifyCode(HttpServletRequest request);
+    void getVerifyCode(String phone, HttpServletRequest request) throws Exception;
 
     /**
      * 用户名密码登录 todo 手机号登录
@@ -58,4 +59,12 @@ public interface UserService extends IService<User> {
      * @return 更新后的用户脱敏信息
      */
     BaseResponse<User> updatePersonalInfo(UserUpdateInfoRequest userUpdateInfoRequest, HttpServletRequest request);
+
+    /**
+     * 手机号登录
+     * @param userPhoneLoginRequest 手机号登录请求体
+     * @param request 存储了验证码
+     * @return 脱敏后的用户信息
+     */
+    BaseResponse<User> userPhoneLogin(UserPhoneLoginRequest userPhoneLoginRequest, HttpServletRequest request);
 }
