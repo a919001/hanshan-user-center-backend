@@ -83,6 +83,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if (count != null && count > 0) {
             return ResultUtils.error(ErrorCode.PARAMS_ERROR, "该用户名已存在");
         }
+        // 手机号是否重复
+        userQueryWrapper.clear();
+        userQueryWrapper.eq("phone", phone);
+        Long phoneCount = userMapper.selectCount(userQueryWrapper);
+        if (phoneCount != null && phoneCount > 0) {
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "该手机号已被注册");
+        }
         // 密码加密
         String encryptPassword = SecureUtil.md5(password);
         // 手机号加密

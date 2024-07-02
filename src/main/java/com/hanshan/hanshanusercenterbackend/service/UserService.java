@@ -25,13 +25,13 @@ public interface UserService extends IService<User> {
     BaseResponse<Long> userRegister(UserRegisterRequest userRegisterRequest, HttpServletRequest request);
 
     /**
-     * 获取验证码 todo 之后使用云服务优化
+     * 获取验证码 todo 之后使用云服务优化，目前已实现，但是还需解决控制访问问题
      * @param request 暂时用session实现
      */
     void getVerifyCode(String phone, HttpServletRequest request) throws Exception;
 
     /**
-     * 用户名密码登录 todo 手机号登录
+     * 用户名密码登录 todo 手机号登录，目前已实现，但是还需解决控制访问问题
      * @param userPasswordLoginRequest 用户名密码登录请求体
      * @param request HttpServletRequest
      * @return 脱敏后的用户信息
