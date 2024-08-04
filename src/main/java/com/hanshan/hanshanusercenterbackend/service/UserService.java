@@ -9,6 +9,7 @@ import com.hanshan.hanshanusercenterbackend.model.request.UserRegisterRequest;
 import com.hanshan.hanshanusercenterbackend.model.request.UserUpdateInfoRequest;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
 * @author 寒山
@@ -67,4 +68,11 @@ public interface UserService extends IService<User> {
      * @return 脱敏后的用户信息
      */
     BaseResponse<User> userPhoneLogin(UserPhoneLoginRequest userPhoneLoginRequest, HttpServletRequest request);
+
+    /**
+     * 根据标签搜索用户，精确查找
+     * @param tagNameList 检索条件
+     * @return 脱敏后的用户列表
+     */
+    List<User> searchUserByTags(List<String> tagNameList);
 }

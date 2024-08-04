@@ -21,6 +21,7 @@
             <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
             <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
             <result property="isDelete" column="is_delete" jdbcType="TINYINT"/>
+            <result property="tags" column="tags" jdbcType="VARCHAR"/>
     </resultMap>
 
     <sql id="Base_Column_List">
@@ -29,6 +30,6 @@
         birthday,region,signature,
         phone,email,user_status,
         user_role,create_time,update_time,
-        is_delete
+        is_delete,tags
     </sql>
 </mapper>

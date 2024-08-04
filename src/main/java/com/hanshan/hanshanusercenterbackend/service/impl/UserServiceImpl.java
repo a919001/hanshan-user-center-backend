@@ -1,10 +1,12 @@
 package com.hanshan.hanshanusercenterbackend.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.DesensitizedUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.SecureUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -13,6 +15,7 @@ import com.hanshan.hanshanusercenterbackend.common.ErrorCode;
 import com.hanshan.hanshanusercenterbackend.common.ResultUtils;
 import com.hanshan.hanshanusercenterbackend.common.VerifyCodeHolder;
 import com.hanshan.hanshanusercenterbackend.constant.UserConstant;
+import com.hanshan.hanshanusercenterbackend.exception.BusinessException;
 import com.hanshan.hanshanusercenterbackend.mapper.UserMapper;
 import com.hanshan.hanshanusercenterbackend.model.domain.User;
 import com.hanshan.hanshanusercenterbackend.model.request.UserPasswordLoginRequest;
@@ -26,6 +29,9 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.hanshan.hanshanusercenterbackend.constant.UserConstant.*;
 import static com.hanshan.hanshanusercenterbackend.utils.SendSms.sendSms;
@@ -194,6 +200,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         safetyUser.setUserRole(user.getUserRole());
         safetyUser.setCreateTime(user.getCreateTime());
         safetyUser.setUpdateTime(user.getUpdateTime());
+        safetyUser.setTags(user.getTags());
         return safetyUser;
     }
 
@@ -263,6 +270,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     /**
      * 判断验证码是否过期
+     *
      * @return true 已过期，false 未过期
      */
     private boolean verifyCodeWhetherExpired(VerifyCodeHolder storedVerifyCodeHolder) {
@@ -270,6 +278,57 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return true;
         }
         return new Date().getTime() - storedVerifyCodeHolder.getGenerationTime().getTime() >= VERIFY_CODE_EXPIRED_TIME;
+    }
+
+
+    /**
+     * 根据多个标签搜索用户, 内存过滤
+     *
+     * @param tagNameList 搜索标签列表
+     * @return 脱敏后的结果集
+     */
+    @Override
+    public List<User> searchUserByTags(List<String> tagNameList) {
+        if (CollectionUtil.isEmpty(tagNameList)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        // 1. 查询所有用户
+        List<User> userList = userMapper.selectList(queryWrapper);
+        return userList.stream().filter(user -> {
+            String tags = user.getTags();
+            if (StrUtil.isBlank(tags)) {
+                return false;
+            }
+            // 反序列化 json
+            HashSet<String> tagNameSet = new HashSet<>(JSONUtil.toList(tags, String.class));
+            for (String tagName : tagNameList) {
+                if (!tagNameSet.contains(tagName)) {
+                    return false;
+                }
+            }
+            return true;
+        }).map(this::getSafetyUser).collect(Collectors.toList());
+    }
+
+    /**
+     * 根据多个标签搜索用户, sql查询
+     *
+     * @param tagNameList 搜索标签列表
+     * @return 脱敏后的结果集
+     */
+    @Deprecated
+    public List<User> searchUserByTagsBySQL(List<String> tagNameList) {
+        if (CollectionUtil.isEmpty(tagNameList)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        // 拼接and参数
+        for (String tageName : tagNameList) {
+            queryWrapper = queryWrapper.like("tags", tageName);
+        }
+        List<User> userList = userMapper.selectList(queryWrapper);
+        return userList.stream().map(this::getSafetyUser).collect(Collectors.toList());
     }
 }
 
