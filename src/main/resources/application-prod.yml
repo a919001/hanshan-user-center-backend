@@ -1,46 +1,21 @@
 spring:
-#  profiles:
-#    active: prod
-  application:
-    name: hanshan-user-center
   # DataSource Config
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/hanshan
+    url: jdbc:mysql://47.98.33.10:3306/hanshan
     username: root
     password: 1234qwer
-
-  # redis配置
-  redis:
-    port: 6379
-    host: localhost
-    database: 0
-
+  # session失效时间
   session:
-    # session失效时间
     timeout: 86400
-    # 从 redis读写session
-    store-type: redis
   # 文件上传大小
   servlet:
     multipart:
       max-file-size: 100MB
       max-request-size: 200MB
-server:
-  port: 8080
-  servlet:
-    context-path: /api
-mybatis-plus:
-  configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-  global-config:
-    db-config:
-      logic-delete-field: isDelete # 全局逻辑删除字段名
-      logic-delete-value: 1 # 逻辑已删除值
-      logic-not-delete-value: 0 # 逻辑未删除值
 
 knife4j:
-  enable: true
+  enable: off
   openapi:
     title: 与山寒用户中心
     description: 与山寒用户中心接口文档

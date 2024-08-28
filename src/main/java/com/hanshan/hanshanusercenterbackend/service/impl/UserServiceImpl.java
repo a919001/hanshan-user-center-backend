@@ -191,9 +191,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         safetyUser.setRegion(user.getRegion());
         safetyUser.setSignature(user.getSignature());
         // 解密手机号并脱敏
-        String phone = SecureUtil.aes(UserConstant.AES_KEY.getBytes(StandardCharsets.UTF_8))
-                .decryptStr(user.getPhone(), StandardCharsets.UTF_8);
-        safetyUser.setPhone(DesensitizedUtil.mobilePhone(phone));
+        if (user.getPhone() != null) {
+            String phone = SecureUtil.aes(UserConstant.AES_KEY.getBytes(StandardCharsets.UTF_8))
+                    .decryptStr(user.getPhone(), StandardCharsets.UTF_8);
+            safetyUser.setPhone(DesensitizedUtil.mobilePhone(phone));
+        } else {
+            safetyUser.setPhone(null);
+        }
         // 邮箱脱敏
         safetyUser.setEmail(DesensitizedUtil.email(user.getEmail()));
         safetyUser.setUserStatus(user.getUserStatus());
@@ -293,21 +297,22 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        // 1. 查询所有用户
+        // 查询所有用户
         List<User> userList = userMapper.selectList(queryWrapper);
         return userList.stream().filter(user -> {
             String tags = user.getTags();
+            // 过滤掉没有标签的用户
             if (StrUtil.isBlank(tags)) {
                 return false;
             }
             // 反序列化 json
             HashSet<String> tagNameSet = new HashSet<>(JSONUtil.toList(tags, String.class));
             for (String tagName : tagNameList) {
-                if (!tagNameSet.contains(tagName)) {
-                    return false;
+                if (tagNameSet.contains(tagName)) {
+                    return true;
                 }
             }
-            return true;
+            return false;
         }).map(this::getSafetyUser).collect(Collectors.toList());
     }
 

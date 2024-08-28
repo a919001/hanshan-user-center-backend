@@ -7,9 +7,11 @@ import com.hanshan.hanshanusercenterbackend.common.BaseResponse;
 import com.hanshan.hanshanusercenterbackend.common.ErrorCode;
 import com.hanshan.hanshanusercenterbackend.common.ResultUtils;
 import com.hanshan.hanshanusercenterbackend.constant.UserConstant;
+import com.hanshan.hanshanusercenterbackend.exception.BusinessException;
 import com.hanshan.hanshanusercenterbackend.model.domain.User;
 import com.hanshan.hanshanusercenterbackend.model.request.*;
 import com.hanshan.hanshanusercenterbackend.service.UserService;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,7 +23,7 @@ import java.util.stream.Collectors;
 import static com.hanshan.hanshanusercenterbackend.constant.UserConstant.USER_LOGIN_STATE;
 import static com.hanshan.hanshanusercenterbackend.utils.OssAdd.upload;
 
-@CrossOrigin
+@CrossOrigin(origins = {"http://localhost:5173/"})
 @RestController
 @RequestMapping("/user")
 public class UserController {
@@ -87,6 +89,22 @@ public class UserController {
         List<User> users = userList.stream().map(user -> userService.getSafetyUser(user)).collect(Collectors.toList());
         return ResultUtils.success(users);
     }
+
+
+    /**
+     * 根据标签搜索用户
+     * @param tagNameList 标签列表
+     * @return 用户结果集
+     */
+    @GetMapping("/search/tags")
+    public BaseResponse<List<User>> searchUserByTags(@RequestParam(required = false) List<String> tagNameList) {
+        if (CollectionUtils.isEmpty(tagNameList)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        List<User> userList = userService.searchUserByTags(tagNameList);
+        return ResultUtils.success(userList);
+    }
+
 
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteUser(@RequestBody UserDeleteRequest userDeleteRequest, HttpServletRequest request) {
