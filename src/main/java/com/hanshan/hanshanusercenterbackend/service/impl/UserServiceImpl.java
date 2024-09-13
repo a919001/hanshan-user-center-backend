@@ -31,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.hanshan.hanshanusercenterbackend.constant.UserConstant.*;
@@ -191,7 +192,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         safetyUser.setRegion(user.getRegion());
         safetyUser.setSignature(user.getSignature());
         // 解密手机号并脱敏
-        if (user.getPhone() != null) {
+        if (user.getPhone() != null && user.getPhone().length() > 11) {
             String phone = SecureUtil.aes(UserConstant.AES_KEY.getBytes(StandardCharsets.UTF_8))
                     .decryptStr(user.getPhone(), StandardCharsets.UTF_8);
             safetyUser.setPhone(DesensitizedUtil.mobilePhone(phone));
@@ -314,6 +315,68 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             }
             return false;
         }).map(this::getSafetyUser).collect(Collectors.toList());
+    }
+
+    /**
+     * 获取当前用户信息
+     * @param request HttpServletRequest
+     * @return 当前用户
+     */
+    @Override
+    public User getLoginUser(HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+        User user = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        return user;
+    }
+
+    /**
+     * 修改用户信息，山海接口
+     * @param user 新的用户信息
+     * @param loginUser 当前登录用户
+     * @return 修改结果
+     */
+    @Override
+    public int updateUser(User user, User loginUser) {
+        Long userId = user.getId();
+        if (userId == null || userId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 如果是管理员，允许更新任意用户
+        // 如果不是管理员，只允许更新自己的信息
+        if (!isAdmin(loginUser) && !Objects.equals(loginUser.getId(), userId)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        User oldUserInfo = userMapper.selectById(userId);
+        if (oldUserInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        return userMapper.updateById(user);
+    }
+
+    /**
+     * 是否为管理员
+     * @param request HttpServletRequest
+     * @return 是 or 否
+     */
+    @Override
+    public boolean isAdmin(HttpServletRequest request) {
+        User user = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
+        return user != null && user.getUserRole() == ADMIN_ROLE;
+    }
+
+    /**
+     * 是否为管理员
+     * @param loginUser 当前用户
+     * @return 是 or 否
+     */
+    @Override
+    public boolean isAdmin(User loginUser) {
+        return loginUser != null && loginUser.getUserRole() == ADMIN_ROLE;
     }
 
     /**

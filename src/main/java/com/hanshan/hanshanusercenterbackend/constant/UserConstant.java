@@ -15,10 +15,6 @@ public interface UserConstant {
      */
     String AES_KEY = "1234qwer1234qwer";
 
-    /**
-     * 默认权限
-     */
-    int DEFAULT_ROLE = 0;
 
     /**
      * 管理员权限

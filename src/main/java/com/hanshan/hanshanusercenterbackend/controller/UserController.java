@@ -3,10 +3,10 @@ package com.hanshan.hanshanusercenterbackend.controller;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hanshan.hanshanusercenterbackend.common.BaseResponse;
 import com.hanshan.hanshanusercenterbackend.common.ErrorCode;
 import com.hanshan.hanshanusercenterbackend.common.ResultUtils;
-import com.hanshan.hanshanusercenterbackend.constant.UserConstant;
 import com.hanshan.hanshanusercenterbackend.exception.BusinessException;
 import com.hanshan.hanshanusercenterbackend.model.domain.User;
 import com.hanshan.hanshanusercenterbackend.model.request.*;
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 import static com.hanshan.hanshanusercenterbackend.constant.UserConstant.USER_LOGIN_STATE;
 import static com.hanshan.hanshanusercenterbackend.utils.OssAdd.upload;
 
-@CrossOrigin(origins = {"http://localhost:5173/"})
+@CrossOrigin(origins = {"http://localhost:5173/"}, allowCredentials = "true")
 @RestController
 @RequestMapping("/user")
 public class UserController {
@@ -76,7 +76,7 @@ public class UserController {
     @GetMapping("/search")
     public BaseResponse<List<User>> searchUsers(String username, HttpServletRequest request) {
         // 鉴权
-        if (!isAdmin(request)) {
+        if (!userService.isAdmin(request)) {
             return ResultUtils.error(ErrorCode.NO_AUTH_ERROR);
         }
         // 查询
@@ -90,9 +90,9 @@ public class UserController {
         return ResultUtils.success(users);
     }
 
-
     /**
      * 根据标签搜索用户
+     *
      * @param tagNameList 标签列表
      * @return 用户结果集
      */
@@ -105,11 +105,19 @@ public class UserController {
         return ResultUtils.success(userList);
     }
 
-
+    @GetMapping("/recommend")
+    public BaseResponse<List<User>> recommendUsers(long pageNum, long pageSize) {
+        // 查询
+        QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+        Page<User> page = userService.page(new Page<>(pageNum, pageSize), userQueryWrapper);
+        // 用户脱敏
+        List<User> users = page.getRecords().stream().map(user -> userService.getSafetyUser(user)).collect(Collectors.toList());
+        return ResultUtils.success(users);
+    }
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteUser(@RequestBody UserDeleteRequest userDeleteRequest, HttpServletRequest request) {
         Long id = userDeleteRequest.getId();
-        if (isAdmin(request)) {
+        if (userService.isAdmin(request)) {
             if (id < 0) {
                 return ResultUtils.error(ErrorCode.PARAMS_ERROR);
             }
@@ -118,17 +126,6 @@ public class UserController {
             return ResultUtils.error(ErrorCode.NO_AUTH_ERROR);
         }
     }
-
-    /**
-     * 鉴权
-     * @param request 获取登录态
-     * @return 是否为管理员
-     */
-    private boolean isAdmin(HttpServletRequest request) {
-        User user = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
-        return user != null && user.getUserRole() == UserConstant.ADMIN_ROLE;
-    }
-
 
     @PostMapping("/upload")
     public BaseResponse<String> uploadAvatar(@RequestParam("avatar") MultipartFile file, HttpServletRequest request) {
@@ -146,5 +143,17 @@ public class UserController {
     public BaseResponse<User> updatePersonalInfo(@RequestBody UserUpdateInfoRequest userUpdateInfoRequest,
                                                  HttpServletRequest request) {
         return userService.updatePersonalInfo(userUpdateInfoRequest, request);
+    }
+
+    @PostMapping("update")
+    public BaseResponse<Integer> updateUser(@RequestBody User user, HttpServletRequest request) {
+        // 验证参数是否为空
+        if (user == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 鉴权
+        User loginUser = userService.getLoginUser(request);
+        int result = userService.updateUser(user, loginUser);
+        return ResultUtils.success(result);
     }
 }

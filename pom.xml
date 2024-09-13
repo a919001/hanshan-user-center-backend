@@ -136,7 +136,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
                 <configuration>
-                    <mainClass>com.hanshan.hanshanusercenterbackend.HanshanUserCenterBackendApplication</mainClass>
+                    <mainClass>com.hanshan.hanshanusercenterbackend.HanShanUserCenterBackendApplication</mainClass>
                     <skip>false</skip>
                 </configuration>
                 <executions>
